@@ -240,10 +240,4 @@ Get information about the loaded dataset.
 - **Scalable**: Handles growing talent databases efficiently
 - **Cost Effective**: Reduces recruitment costs and time-to-hire
 
-## 📞 Support & Contact
 
-For technical support, feature requests, or questions about the implementation, please refer to the code documentation or create an issue in the project repository.
-
----
-
-**Built with ❤️ using Django, Hugging Face Transformers, and modern web technologies.**

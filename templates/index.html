@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Directory - Talent Recommender</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Talent Recommender</h1>
+      <div class="controls" style="flex-direction: column; align-items: stretch; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <label for="jobText" style="font-weight: 600; color: #e8ecf1;">Job Description</label>
+          <span style="font-size: 12px; color: #9db0d3; background: rgba(63,109,246,0.15); padding: 2px 8px; border-radius: 12px;">AI-Powered Matching</span>
+        </div>
+        <textarea id="jobText" rows="5" placeholder="Paste the creator brief or job requirements here... Be specific about skills, experience level, and project details for better matches." style="width:100%; padding:12px; border-radius:10px; border:1px solid #2a386b; background:#0f1730; color:#e8ecf1; font-size: 14px; line-height: 1.5; resize: vertical;"></textarea>
+        <div style="display:flex; gap: 12px; align-items:center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <label for="locationPref" style="display: block; font-size: 12px; color: #9db0d3; margin-bottom: 4px;">Location Preference</label>
+            <input id="locationPref" placeholder="e.g., New York, Remote, Asia" style="width:100%; padding:10px; border-radius:8px; border:1px solid #2a386b; background:#0f1730; color:#e8ecf1;" />
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(63,109,246,0.1); border-radius: 8px; border: 1px solid rgba(63,109,246,0.2);">
+            <input type="checkbox" id="preferFemale" style="transform: scale(1.1);" />
+            <label for="preferFemale" style="font-size: 13px; color: #e8ecf1; cursor: pointer;">Prefer Female Candidates</label>
+          </div>
+          <button id="fetchBtn" style="padding: 12px 20px; font-weight: 600; background: linear-gradient(135deg, #3f6df6, #2c56e6); border: none; border-radius: 10px; color: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(63,109,246,0.3);">
+            <span>🎯 Get Top 10 Matches</span>
+          </button>
+        </div>
+      </div>
+      <div class="controls" style="gap:6px;">
+        <button id="preset1">Preset: Video Editor (Asia preferred)</button>
+        <button id="preset2">Preset: Producer/Editor (NY/US, TikTok, prefer female)</button>
+        <button id="preset3">Preset: COO (Productivity)</button>
+      </div>
+      <div id="status" style="margin:8px 0; color:#9db0d3;"></div>
+      
+      <ol id="results"></ol>
+    </div>
+
+    <script>
+      async function getJSON(url, options) {
+        const res = await fetch(url, options);
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      function init() {}
+
+      async function fetchTop10() {
+        const text = document.getElementById('jobText').value;
+        const location_pref = document.getElementById('locationPref').value;
+        const prefer_female = document.getElementById('preferFemale').checked;
+        const body = JSON.stringify({ text, location_pref, prefer_female });
+        const btn = document.getElementById('fetchBtn');
+        const status = document.getElementById('status');
+        const list = document.getElementById('results');
+        // set buffering/loading state
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = 'Loading...';
+        status.textContent = 'Scoring candidates...';
+        list.innerHTML = '<li>Loading results...</li>';
+        try {
+        const data = await getJSON('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        list.innerHTML = '';
+        data.top10.slice(0, 10).forEach((t, i) => {
+          const li = document.createElement('li');
+          const scoreColor = t.score > 0.7 ? '#29c48a' : t.score > 0.5 ? '#f59e0b' : '#ef4444';
+          const scoreLabel = t.score > 0.7 ? 'Excellent Match' : t.score > 0.5 ? 'Good Match' : 'Fair Match';
+          
+          li.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div>
+                <strong style="font-size: 16px; color: #e8ecf1;">${i + 1}. ${t.name || 'Talent'}</strong>
+                <span style="color: #9db0d3; margin-left: 8px;">📍 ${t.location || 'Location not specified'}</span>
+              </div>
+              <div style="text-align: right;">
+                <div class="score" style="background: ${scoreColor}20; color: ${scoreColor}; border-color: ${scoreColor}40;">${t.score}</div>
+                <small style="color: #9db0d3; font-size: 11px;">${scoreLabel}</small>
+              </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <small style="color: #cbd6ff; line-height: 1.4;">${t.summary}</small>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button data-idx="${t.index}" class="detailBtn" style="background: linear-gradient(135deg, #3f6df6, #2c56e6); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s ease;">
+                📋 View Full Profile
+              </button>
+              ${t.monthly_rate ? `<span style="background: rgba(41,196,138,0.15); color: #29c48a; padding: 4px 8px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(41,196,138,0.3);">💰 ${t.monthly_rate}</span>` : ''}
+              ${t.hourly_rate ? `<span style="background: rgba(245,158,11,0.15); color: #f59e0b; padding: 4px 8px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(245,158,11,0.3);">⏰ ${t.hourly_rate}</span>` : ''}
+            </div>
+            ${t.base_similarity !== undefined ? `
+              <div style="margin-top: 8px; padding: 8px; background: rgba(63,109,246,0.05); border-radius: 6px; border: 1px solid rgba(63,109,246,0.1);">
+                <small style="color: #9db0d3; font-size: 11px;">
+                  <span style="color: #3f6df6;">🧠 Semantic: ${t.base_similarity}</span> | 
+                  <span style="color: #8b5cf6;">🔍 Keywords: ${t.keyword_match}</span>
+                </small>
+              </div>
+            ` : ''}
+          `;
+          list.appendChild(li);
+        });
+        document.querySelectorAll('.detailBtn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const idx = e.target.getAttribute('data-idx');
+            try {
+              const json = await getJSON(`/api/talent/${idx}`);
+              showDetailModal(json);
+            } catch (err) {
+              alert('Failed to load details: ' + err.message);
+            }
+          });
+        });
+        status.textContent = `Loaded ${data.top10.length} candidates`;
+        } catch (err) {
+          status.textContent = 'Error: ' + err.message;
+          list.innerHTML = '';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      }
+
+      document.getElementById('fetchBtn').addEventListener('click', () => {
+        fetchTop10().catch(err => alert('Error: ' + err.message));
+      });
+
+      document.getElementById('preset1').addEventListener('click', () => {
+        document.getElementById('jobText').value = "Looking for a talented Video Editor with experience in Adobe Premiere Pro who can edit content in Entertainment/Lifestyle & Vlogs categories. Historically, team preferred to hire talent in Asia for cheaper but open to all locations. Content: short-form and long-form. Top required skills: Splice & Dice, Rough Cut & Sequencing, 2D Animation. Budget: $2500/month.";
+        document.getElementById('locationPref').value = 'Asia';
+        document.getElementById('preferFemale').checked = false;
+      });
+      document.getElementById('preset2').addEventListener('click', () => {
+        document.getElementById('jobText').value = "Producer/Video Editor based in New York (1st priority) or remote from the US to help scale a channel in Entertainment/Education/Food & Cooking. Deep experience in TikTok. Top required skills: Storyboarding, Sound Designing, Rough Cut & Sequencing, Filming. Budget: 100-150 per hour. Prefer female candidates (not a must).";
+        document.getElementById('locationPref').value = 'New York, US';
+        document.getElementById('preferFemale').checked = true;
+      });
+      document.getElementById('preset3').addEventListener('click', () => {
+        document.getElementById('jobText').value = "Chief Operating Officer to run a productivity channel. Background welcome in Strategy & Consulting, Business operations or Development. Needs high energy and passion for educational content. No budget limitation; hire the best talent.";
+        document.getElementById('locationPref').value = '';
+        document.getElementById('preferFemale').checked = false;
+      });
+
+      function showDetailModal(data) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+        modal.style.background = 'rgba(0,0,0,0.6)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        const card = document.createElement('div');
+        card.style.background = '#131a33';
+        card.style.border = '1px solid #2a386b';
+        card.style.borderRadius = '12px';
+        card.style.padding = '20px';
+        card.style.width = 'min(720px, 90vw)';
+        const t = (data && data.talent) ? data.talent : {};
+        const chips = [];
+        ['skills','software','platforms','niches','verticals','creators','past_creators'].forEach(k=>{ if (t[k]) chips.push(`<span class="chip">${t[k]}</span>`) });
+        const kvRows = Object.entries(t).map(([k,v])=>`<tr><th>${k}</th><td>${v}</td></tr>`).join('');
+        card.innerHTML = `<h3 style="margin-top:0;">${t.name || 'Talent detail'}</h3>
+          <div class="kv">
+            <div class="k">Location</div><div>${t.location || ''}</div>
+            <div class="k">Gender</div><div>${t.gender || ''}</div>
+            <div class="k">Monthly</div><div>${t.monthly_rate || ''}</div>
+            <div class="k">Hourly</div><div>${t.hourly_rate || ''}</div>
+          </div>
+          <div class="k">Summary</div>
+          <div style="margin-bottom:10px;">${t.summary || ''}</div>
+          <div class="chips">${chips.join('')}</div>
+          <div class="table-scroll" style="margin-top:14px;">
+            <table class="kv-table">${kvRows}</table>
+          </div>
+          <div style="text-align:right; margin-top:12px;">
+            <button id="closeModal">Close</button>
+          </div>`;
+        modal.appendChild(card);
+        document.body.appendChild(modal);
+        const close = () => modal.remove();
+        document.getElementById('closeModal').addEventListener('click', close);
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+      }
+
+      init();
+    </script>
+  </body>
+  </html>
+
+

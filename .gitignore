@@ -1,0 +1,59 @@
+# -----------------
+# Python cache
+# -----------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.pickle
+
+# -----------------
+# Virtual Environments
+# -----------------
+env/
+venv/
+ENV/
+.venv/
+
+# -----------------
+# Build / Distribution
+# -----------------
+build/
+dist/
+*.egg-info/
+*.egg
+
+# -----------------
+# Jupyter Notebook
+# -----------------
+.ipynb_checkpoints/
+
+# -----------------
+# Environment / Secrets
+# -----------------
+.env
+*.env
+secrets.json
+
+# -----------------
+# Django specific
+# -----------------
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# -----------------
+# IDE / Editor
+# -----------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
